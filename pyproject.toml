@@ -1,0 +1,19 @@
+[project]
+name = "satfx"
+version = "0.1.0"
+description = "Satellite-messaging forensics: sms.db transport audit, SQLite diff, sweep, orbital corroboration"
+requires-python = ">=3.10"
+dependencies = ["sgp4>=2.23"]
+
+[project.optional-dependencies]
+test = ["pytest", "skyfield>=1.48"]
+
+[project.scripts]
+satfx = "satfx.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["satfx*"]
