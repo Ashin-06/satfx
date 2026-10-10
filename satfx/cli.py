@@ -4,7 +4,7 @@ import json
 import sys
 from datetime import datetime, timezone
 
-from satfx import orbit
+from satfx import orbit, sms
 
 
 def _dump(obj):
@@ -33,10 +33,13 @@ def main(argv=None):
     v = sub.add_parser("visible", help="which satellites were in view at a time and place")
     v.add_argument("--elements", required=True, help="TLE or OMM-JSON file for the constellation")
     _place(v)
+    sub.add_parser("sms", help="iOS sms.db: messages with transport audit (read-only)").add_argument("db")
     a = p.parse_args(argv)
 
     if a.cmd == "visible":
         _dump(orbit.coverage(orbit.load(a.elements), a.time, a.lat, a.lon, a.alt, a.mask, a.window))
+    elif a.cmd == "sms":
+        _dump(sms.read(a.db))
 
 
 if __name__ == "__main__":
