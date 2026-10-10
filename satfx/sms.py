@@ -67,6 +67,8 @@ def read(path: str) -> dict:
     conn = sqlite3.connect(f"file:{path}?mode=ro&immutable=1", uri=True)
     try:
         cols = {r[1] for r in conn.execute("PRAGMA table_info(message)")}
+        if not cols:
+            raise ValueError(f"{path}: no 'message' table; not an iOS sms.db")
         want = [c for c in ("ROWID", "guid", "text", "attributedBody", "service", "date", "date_delivered",
                             "date_read", "is_from_me", "handle_id", "destination_caller_id",
                             "message_summary_info") if c in cols]

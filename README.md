@@ -1,6 +1,6 @@
 # SatFX: Forensics of Satellite Messaging on Phones
 
-**Project 3 of 5** · Status: research complete, tool in progress, lab work not started
+**Project 3 of 5** · Status: research complete, tool built and tested (23 tests), lab work not started
 Research cut-off: 10 Oct 2026
 
 ## What this is
@@ -38,7 +38,52 @@ Nobody has documented how a phone records that. Forensic tools show these messag
 │   ├── 06-experiment-plan.md        hypotheses H1-H7, lab tasks L1-L6
 │   ├── 07-paper-outline.md
 │   └── sources.md
+├── satfx/
+│   ├── orbit.py                     SGP4 visibility, coverage windows, element-age and TLE warnings
+│   ├── corroborate.py               per-event verdicts, reproducible inputs, JSON/CSV/HTML
+│   ├── sms.py                       iOS sms.db reader with transport audit
+│   ├── discover.py                  SQLite before/after diff, term sweep
+│   └── cli.py                       `satfx` command
+├── tests/                           23 tests; fixtures = real CelesTrak sets (9 Oct 2026)
+└── pyproject.toml
 ```
+
+## Finding so far: TLE data silently drops new satellites
+CelesTrak's TLE output for Globalstar returned **28** satellites; its OMM JSON returned **36**. The 8 missing are the newest (6-digit catalog numbers the TLE format cannot hold), about 22% of the constellation. At 70°S 40°E on 9 Oct 2026 13:12 UTC the TLE data shows no satellite in view while the full data shows one, so a TLE-based analysis would wrongly call a satellite message implausible. Details in [research/04](research/04-orbital-corroboration.md). `satfx` warns on every TLE-based result.
+
+## Tool
+```bash
+python -m venv .venv && .venv/Scripts/pip install -e .[test]   # Linux/macOS: .venv/bin/pip
+pytest -q
+```
+Every command only reads its inputs.
+
+```bash
+satfx visible     --elements globalstar.json --time 2026-10-09T12:00:00Z --lat 37 --lon -120
+satfx corroborate --elements globalstar.json --events events.csv --format html > corroboration.html
+satfx corroborate --elements globalstar.json --sms sms.db --lat 37 --lon -120 --since 2026-10-01T00:00:00Z
+satfx sms         sms.db                       # messages with transport audit
+satfx diff        e0/sms.db e1/sms.db          # what a satellite session changed (lab protocol)
+satfx sweep       extraction/                  # satellite terms in names and contents
+```
+Get element sets as OMM JSON, from close to the event date: `https://celestrak.org/NORAD/elements/gp.php?GROUP=globalstar&FORMAT=json` (also `iridium-NEXT`, `starlink`; historical sets from Space-Track). Keep the file: its SHA-256 goes into every report.
+
+| Feature | Checked against | Status |
+|---|---|---|
+| SGP4 visibility (az/el/range) | Skyfield on real Globalstar + Iridium sets, 8,100 comparisons | ✅ max error 0.0023° el, 0.011° az, 42 m |
+| TLE and OMM JSON loading | same satellites agree < 0.001; 6-digit gap reproduced | ✅ tests |
+| Coverage window, verdicts, element-age flags | analytic cases (pole, stale sets) | ✅ tests |
+| sms.db transport audit, attributedBody, mixed s/ns dates | synthetic sms.db per documented schema | ✅ tests; ⏳ real iOS 26 db is lab task L1 |
+| SQLite diff, term sweep (UTF-8/16, chunk boundaries) | synthetic before/after databases and files | ✅ tests |
+| Corroboration reports with input hashes | real element sets | ✅ tests |
+| Speed | 8,960 satellites × 61 steps | 2.0 s |
+
+### Known gaps
+- **No satellite artifact on the phone is confirmed yet.** That needs lab phones (L1-L5). Until then the tool reports transport values verbatim and flags unknown ones; it does not claim to detect satellite messages.
+- **Android `bugle_db`** is not parsed (schema undocumented for satellite); use `diff` and `sweep`.
+- **Starlink direct-to-cell** satellites are not separated in public element sets; a Starlink-group check over-states T-Satellite coverage.
+- **No terrain model**: the elevation mask stands in for trees and terrain.
+- **Compressed logs** (unified-log `.tracev3`) are not decompressed by `sweep`.
 
 ## Ethics in one line
 Lab work uses demo modes only, never a real emergency call, on project phones and accounts. Details in [research/05](research/05-legal-ethics.md).

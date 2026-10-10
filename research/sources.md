@@ -24,4 +24,4 @@
 - CelesTrak GP data and groups: https://celestrak.org/NORAD/elements/ · SupGP: https://celestrak.org/NORAD/elements/supplemental/ · 6-digit catalog / OMM notice on the same site
 - `sgp4` (Python, Vallado SGP4): https://pypi.org/project/sgp4/ (v2.27 used)
 - Skyfield (validation only): https://rhodesmill.org/skyfield/ (v1.55 used)
-- Test fixtures: `tests/fixtures/globalstar.tle`, `tests/fixtures/iridium-NEXT.tle` downloaded from `https://celestrak.org/NORAD/elements/gp.php?GROUP=<group>&FORMAT=tle` on 10 Oct 2026 (epoch 9 Oct 2026)
+- Test fixtures: `tests/fixtures/globalstar.tle`, `globalstar.json` (FORMAT=json), `iridium-NEXT.tle` downloaded from `https://celestrak.org/NORAD/elements/gp.php?GROUP=<group>&FORMAT=tle` (and `FORMAT=json`) on 10 Oct 2026 (epoch 9 Oct 2026)
