@@ -78,3 +78,22 @@ def test_naive_time_rejected():
     gs = orbit.load(FIX / "globalstar.tle")
     with pytest.raises(ValueError):
         orbit.in_view(gs, datetime(2026, 10, 9, 12, 0), 0, 0)
+
+
+def test_omm_json_matches_tle_and_keeps_six_digit_sats():
+    js, tl = orbit.load(FIX / "globalstar.json"), orbit.load(FIX / "globalstar.tle")
+    assert len(js) == 36 and len(tl) == 28
+    jd, td = dict(js), dict(tl)
+    for name, sat in td.items():  # same element sets, same answer in either format
+        a, b = orbit.look(jd[name], T0, 37, -120), orbit.look(sat, T0, 37, -120)
+        assert abs(a[1] - b[1]) < 0.01 and abs(a[2] - b[2]) < 0.01
+    assert {n for n in jd if n not in td} == {f"GLOBALSTAR M{k:03d}" for k in (98, 99, 100, 101, 102, 104, 105, 106)}
+    assert orbit.elements_format(FIX / "globalstar.json") == "omm-json"
+    assert orbit.elements_format(FIX / "globalstar.tle") == "tle"
+
+
+def test_tle_gap_flips_the_verdict():
+    # Found by grid search: only a 6-digit-catalog satellite is up here, so TLE-only data says "none".
+    when = datetime(2026, 10, 9, 13, 12, tzinfo=timezone.utc)
+    assert orbit.in_view(orbit.load(FIX / "globalstar.tle"), when, -70, 40) == []
+    assert [s["name"] for s in orbit.in_view(orbit.load(FIX / "globalstar.json"), when, -70, 40)] == ["GLOBALSTAR M104"]

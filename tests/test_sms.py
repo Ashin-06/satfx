@@ -79,3 +79,14 @@ def test_read_audits_transport(tmp_path):
     assert by["g2"]["from_me"] and by["g2"]["own_address"] == "+15555550100"
     # g5's raw date is in seconds (small number) but it is the latest message in real time
     assert [m["guid"] for m in r["messages"]] == ["g1", "g2", "g3", "g4", "g5"]
+
+
+def test_not_an_sms_db(tmp_path):
+    import pytest
+    db = tmp_path / "other.db"
+    c = sqlite3.connect(str(db))
+    c.execute("CREATE TABLE t (x)")
+    c.commit()
+    c.close()
+    with pytest.raises(ValueError, match="not an iOS sms.db"):
+        sms.read(str(db))

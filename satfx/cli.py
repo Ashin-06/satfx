@@ -1,6 +1,7 @@
 """satfx command line. Every command only reads its inputs."""
 import argparse
 import json
+import sqlite3
 import sys
 from datetime import datetime, timezone
 
@@ -54,9 +55,18 @@ def main(argv=None):
     c.add_argument("--window", type=int, default=15)
     c.add_argument("--format", choices=["json", "csv", "html"], default="json")
     a = p.parse_args(argv)
+    try:
+        _run(p, a)
+    except (OSError, ValueError, sqlite3.Error) as e:  # bad evidence input: clean message, no traceback
+        p.error(f"{a.cmd}: {type(e).__name__}: {e}")
 
+
+def _run(p, a):
     if a.cmd == "visible":
-        _dump(orbit.coverage(orbit.load(a.elements), a.time, a.lat, a.lon, a.alt, a.mask, a.window))
+        res = orbit.coverage(orbit.load(a.elements), a.time, a.lat, a.lon, a.alt, a.mask, a.window)
+        if orbit.elements_format(a.elements) == "tle":
+            res["warning"] = orbit.TLE_WARNING
+        _dump(res)
     elif a.cmd == "sms":
         _dump(sms.read(a.db))
     elif a.cmd == "diff":

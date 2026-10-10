@@ -81,7 +81,12 @@ def sweep(root: str, terms=None, chunk: int = 8 << 20, max_hits_per_file: int = 
                 continue
             hits += [{"file": path, "where": "name", "term": t} for t in terms if t in path.lower()]
             found, seen = [], set()
-            with open(path, "rb") as fh:
+            try:
+                fh = open(path, "rb")
+            except OSError as e:  # unreadable file: report it, keep sweeping
+                hits.append({"file": path, "where": "error", "error": f"{type(e).__name__}: {e}"})
+                continue
+            with fh:
                 base, tail = 0, b""
                 while len(found) < max_hits_per_file and (block := fh.read(chunk)):
                     data = (tail + block).lower()

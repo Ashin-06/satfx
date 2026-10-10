@@ -60,6 +60,8 @@ def run(events: list[dict], elements_path: str, mask: float = 10.0, window_min: 
     return {
         "assumptions": {
             "elements_file": str(elements_path), "elements_sha256": hashlib.sha256(data).hexdigest(),
+            "elements_format": orbit.elements_format(elements_path),
+            "warning": orbit.TLE_WARNING if orbit.elements_format(elements_path) == "tle" else None,
             "satellites": len(sats), "mask_deg": mask, "window_min": window_min, "model": "SGP4, TEME->ECEF by GMST",
             "not_modelled": "terrain, buildings, foliage, device antenna, service availability",
             "meaning": "consistency with a satellite link, not proof that a message was sent",

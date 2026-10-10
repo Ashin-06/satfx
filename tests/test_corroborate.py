@@ -46,3 +46,20 @@ def test_renderers(tmp_path):
     assert "&lt;b&gt;x&lt;/b&gt;" in h and "not proof" in h
     assert corroborate.to_csv(rep).splitlines()[0].startswith("label,time_utc")
     assert '"elements_sha256"' in corroborate.to_json(rep)
+
+
+def test_tle_warning_only_for_tle(tmp_path):
+    ev = tmp_path / "e.csv"
+    ev.write_text("time_utc,lat,lon\n2026-10-09T12:00:00Z,37,-120\n", encoding="utf-8")
+    evs = corroborate.events_from_csv(str(ev))
+    assert "6-digit" in corroborate.run(evs, str(GS), window_min=1)["assumptions"]["warning"]
+    assert corroborate.run(evs, str(GS.with_suffix(".json")), window_min=1)["assumptions"]["warning"] is None
+
+
+def test_cli_bad_input_is_clean_error(tmp_path, capsys):
+    from satfx import cli
+    bad = tmp_path / "not.db"
+    bad.write_text("time_utc,lat,lon\n", encoding="utf-8")
+    with pytest.raises(SystemExit) as e:
+        cli.main(["sms", str(bad)])
+    assert e.value.code == 2 and "DatabaseError" in capsys.readouterr().err
