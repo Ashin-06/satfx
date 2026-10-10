@@ -4,7 +4,7 @@ import json
 import sys
 from datetime import datetime, timezone
 
-from satfx import discover, orbit, sms
+from satfx import corroborate, discover, orbit, sms
 
 
 def _dump(obj):
@@ -40,6 +40,19 @@ def main(argv=None):
     sw = sub.add_parser("sweep", help="find satellite-related terms in an extraction (names and contents)")
     sw.add_argument("root")
     sw.add_argument("--term", action="append", help="search term (repeatable); default: built-in list")
+    c = sub.add_parser("corroborate", help="coverage verdict per event (CSV, or sms.db + claimed location)")
+    c.add_argument("--elements", required=True, help="TLE or OMM-JSON file for the constellation")
+    src = c.add_mutually_exclusive_group(required=True)
+    src.add_argument("--events", help="CSV: time_utc,lat,lon[,alt_m][,label]")
+    src.add_argument("--sms", help="iOS sms.db; needs --lat/--lon (the claimed location)")
+    c.add_argument("--lat", type=float)
+    c.add_argument("--lon", type=float)
+    c.add_argument("--alt", type=float, default=0.0)
+    c.add_argument("--since", type=_when)
+    c.add_argument("--until", type=_when)
+    c.add_argument("--mask", type=float, default=10.0)
+    c.add_argument("--window", type=int, default=15)
+    c.add_argument("--format", choices=["json", "csv", "html"], default="json")
     a = p.parse_args(argv)
 
     if a.cmd == "visible":
@@ -50,6 +63,15 @@ def main(argv=None):
         _dump(discover.diff(a.before, a.after))
     elif a.cmd == "sweep":
         _dump(discover.sweep(a.root, a.term))
+    elif a.cmd == "corroborate":
+        if a.sms:
+            if a.lat is None or a.lon is None:
+                p.error("--sms needs --lat and --lon")
+            events = corroborate.events_from_sms(a.sms, a.lat, a.lon, a.alt, a.since, a.until)
+        else:
+            events = corroborate.events_from_csv(a.events)
+        rep = corroborate.run(events, a.elements, a.mask, a.window)
+        print({"json": corroborate.to_json, "csv": corroborate.to_csv, "html": corroborate.to_html}[a.format](rep))
 
 
 if __name__ == "__main__":
