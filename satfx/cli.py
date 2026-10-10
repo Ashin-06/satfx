@@ -4,7 +4,7 @@ import json
 import sys
 from datetime import datetime, timezone
 
-from satfx import orbit, sms
+from satfx import discover, orbit, sms
 
 
 def _dump(obj):
@@ -34,12 +34,22 @@ def main(argv=None):
     v.add_argument("--elements", required=True, help="TLE or OMM-JSON file for the constellation")
     _place(v)
     sub.add_parser("sms", help="iOS sms.db: messages with transport audit (read-only)").add_argument("db")
+    d = sub.add_parser("diff", help="what changed in a SQLite database between two extractions")
+    d.add_argument("before")
+    d.add_argument("after")
+    sw = sub.add_parser("sweep", help="find satellite-related terms in an extraction (names and contents)")
+    sw.add_argument("root")
+    sw.add_argument("--term", action="append", help="search term (repeatable); default: built-in list")
     a = p.parse_args(argv)
 
     if a.cmd == "visible":
         _dump(orbit.coverage(orbit.load(a.elements), a.time, a.lat, a.lon, a.alt, a.mask, a.window))
     elif a.cmd == "sms":
         _dump(sms.read(a.db))
+    elif a.cmd == "diff":
+        _dump(discover.diff(a.before, a.after))
+    elif a.cmd == "sweep":
+        _dump(discover.sweep(a.root, a.term))
 
 
 if __name__ == "__main__":
