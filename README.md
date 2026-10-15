@@ -68,6 +68,13 @@ satfx sweep       extraction/                  # satellite terms in names and co
 ```
 Get element sets as OMM JSON, from close to the event date: `https://celestrak.org/NORAD/elements/gp.php?GROUP=globalstar&FORMAT=json` (also `iridium-NEXT`, `starlink`; historical sets from Space-Track). Keep the file: its SHA-256 goes into every report.
 
+For `sms` and `diff`, acquire the database and its matching `-wal` sidecar
+together. When a WAL is present, SatFX reads an isolated working copy so committed
+rows in the WAL are included without creating sidecars or checkpointing the
+original evidence. Keep acquired inputs stable during analysis; copying a live
+database while it is changing is not a consistent acquisition. The working copy
+requires temporary disk space for the database and WAL.
+
 | Feature | Checked against | Status |
 |---|---|---|
 | SGP4 visibility (az/el/range) | Skyfield on real Globalstar + Iridium sets, 8,100 comparisons | ✅ max error 0.0023° el, 0.011° az, 42 m |

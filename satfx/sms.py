@@ -3,11 +3,13 @@
 `message.service` is reported verbatim and anything other than iMessage/SMS/RCS is flagged, since
 no satellite value is documented yet and Apple added RCS as recently as iOS 18. Text comes from
 `text`, else from `attributedBody` (typedstream; layout per ChatExportKnowledge/attributedBody.md).
-Opened read-only and immutable; copy sms.db with its -wal first, or the newest rows are missing.
+Original evidence is never written. Acquire sms.db with its matching -wal first;
+WAL data is read through an isolated working copy so the newest rows are included.
 """
 import plistlib
-import sqlite3
 from datetime import datetime, timedelta, timezone
+
+from satfx._sqlite import evidence_connection
 
 KNOWN_SERVICES = {"iMessage", "SMS", "RCS"}
 APPLE_EPOCH = datetime(2001, 1, 1, tzinfo=timezone.utc)
@@ -64,8 +66,7 @@ def _summary_keys(blob):
 
 
 def read(path: str) -> dict:
-    conn = sqlite3.connect(f"file:{path}?mode=ro&immutable=1", uri=True)
-    try:
+    with evidence_connection(path) as conn:
         cols = {r[1] for r in conn.execute("PRAGMA table_info(message)")}
         if not cols:
             raise ValueError(f"{path}: no 'message' table; not an iOS sms.db")
@@ -102,8 +103,6 @@ def read(path: str) -> dict:
         msgs.sort(key=lambda m: (m["time_utc"] is None, m["time_utc"] or ""))
         return {"messages": msgs, "services": services,
                 "unrecognised_services": sorted(k for k in services if k != "<blank>" and k not in KNOWN_SERVICES)}
-    finally:
-        conn.close()
 
 
 def _has(conn, table: str) -> bool:

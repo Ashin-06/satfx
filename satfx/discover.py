@@ -1,7 +1,8 @@
 """Artifact discovery for the lab protocol (research/03): SQLite before/after diff and a term sweep."""
 import os
-import sqlite3
 from collections import Counter
+
+from satfx._sqlite import evidence_connection
 
 # Terms worth sweeping for after a satellite session. "stewie": Apple's reported project codename.
 DEFAULT_TERMS = ["satellite", "globalstar", "skylo", "starlink", "iridium", "stewie", "emergency sos",
@@ -14,8 +15,7 @@ def _val(v):
 
 def snapshot(path: str) -> dict:
     """{"schema": {name: sql}, "tables": {table: {"columns": [...], "rows": Counter}}}, read-only."""
-    conn = sqlite3.connect(f"file:{path}?mode=ro&immutable=1", uri=True)
-    try:
+    with evidence_connection(path) as conn:
         schema = {f"{t}:{n}": sql for t, n, sql in conn.execute("SELECT type, name, sql FROM sqlite_master")}
         tables = {}
         for (name,) in conn.execute("SELECT name FROM sqlite_master WHERE type='table'"):
@@ -23,8 +23,6 @@ def snapshot(path: str) -> dict:
             rows = Counter(tuple(_val(v) for v in r) for r in conn.execute(f'SELECT * FROM "{name}"'))
             tables[name] = {"columns": cols, "rows": rows}
         return {"schema": schema, "tables": tables}
-    finally:
-        conn.close()
 
 
 def diff(before: str, after: str, max_rows: int = 200) -> dict:
