@@ -19,8 +19,9 @@ def snapshot(path: str) -> dict:
         schema = {f"{t}:{n}": sql for t, n, sql in conn.execute("SELECT type, name, sql FROM sqlite_master")}
         tables = {}
         for (name,) in conn.execute("SELECT name FROM sqlite_master WHERE type='table'"):
-            cols = [r[1] for r in conn.execute(f'PRAGMA table_info("{name}")')]
-            rows = Counter(tuple(_val(v) for v in r) for r in conn.execute(f'SELECT * FROM "{name}"'))
+            ident = '"' + name.replace('"', '""') + '"'  # names come from the evidence file: quote them properly
+            cols = [r[1] for r in conn.execute(f"PRAGMA table_info({ident})")]  # nosec B608 - quoted identifier
+            rows = Counter(tuple(_val(v) for v in r) for r in conn.execute(f"SELECT * FROM {ident}"))  # nosec B608
             tables[name] = {"columns": cols, "rows": rows}
         return {"schema": schema, "tables": tables}
     finally:

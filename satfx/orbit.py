@@ -59,20 +59,20 @@ def epoch(sat: Satrec) -> datetime:
 
 def observer_ecef(lat: float, lon: float, alt_m: float = 0.0) -> tuple[float, float, float]:
     """WGS-84 geodetic (degrees, metres) -> Earth-fixed km."""
-    p, l = math.radians(lat), math.radians(lon)
+    p, lam = math.radians(lat), math.radians(lon)
     n = WGS84_A / math.sqrt(1 - _E2 * math.sin(p) ** 2)
     h = alt_m / 1000
-    return ((n + h) * math.cos(p) * math.cos(l), (n + h) * math.cos(p) * math.sin(l), (n * (1 - _E2) + h) * math.sin(p))
+    return ((n + h) * math.cos(p) * math.cos(lam), (n + h) * math.cos(p) * math.sin(lam), (n * (1 - _E2) + h) * math.sin(p))
 
 
 def look_ecef(sat_ecef, lat: float, lon: float, alt_m: float = 0.0) -> tuple[float, float, float]:
     """Azimuth (deg, from north, clockwise), elevation (deg), range (km) of an Earth-fixed point."""
     ox, oy, oz = observer_ecef(lat, lon, alt_m)
     dx, dy, dz = sat_ecef[0] - ox, sat_ecef[1] - oy, sat_ecef[2] - oz
-    p, l = math.radians(lat), math.radians(lon)
-    e = -math.sin(l) * dx + math.cos(l) * dy
-    n = -math.sin(p) * math.cos(l) * dx - math.sin(p) * math.sin(l) * dy + math.cos(p) * dz
-    u = math.cos(p) * math.cos(l) * dx + math.cos(p) * math.sin(l) * dy + math.sin(p) * dz
+    p, lam = math.radians(lat), math.radians(lon)
+    e = -math.sin(lam) * dx + math.cos(lam) * dy
+    n = -math.sin(p) * math.cos(lam) * dx - math.sin(p) * math.sin(lam) * dy + math.cos(p) * dz
+    u = math.cos(p) * math.cos(lam) * dx + math.cos(p) * math.sin(lam) * dy + math.sin(p) * dz
     rng = math.sqrt(dx * dx + dy * dy + dz * dz)
     return math.degrees(math.atan2(e, n)) % 360, math.degrees(math.atan2(u, math.hypot(e, n))), rng
 

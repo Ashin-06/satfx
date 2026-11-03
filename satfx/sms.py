@@ -65,6 +65,7 @@ def _summary_keys(blob):
 
 def read(path: str) -> dict:
     conn = sqlite3.connect(f"file:{path}?mode=ro&immutable=1", uri=True)
+    conn.execute("PRAGMA trusted_schema = OFF")  # a seized database's views and triggers can't call functions
     try:
         cols = {r[1] for r in conn.execute("PRAGMA table_info(message)")}
         if not cols:
@@ -78,7 +79,7 @@ def read(path: str) -> dict:
             chats = dict(conn.execute("SELECT j.message_id, c.chat_identifier FROM chat_message_join j "
                                       "JOIN chat c ON c.ROWID = j.chat_id"))
         msgs, services = [], {}
-        for row in conn.execute(f"SELECT {', '.join(want)} FROM message ORDER BY ROWID"):
+        for row in conn.execute(f"SELECT {', '.join(want)} FROM message ORDER BY ROWID"):  # nosec B608 - fixed column allow-list
             m = dict(zip(want, row))
             svc = m.get("service")
             key = svc if svc else "<blank>"

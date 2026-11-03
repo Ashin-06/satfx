@@ -54,7 +54,13 @@ def main(argv=None):
     c.add_argument("--mask", type=float, default=10.0)
     c.add_argument("--window", type=int, default=15)
     c.add_argument("--format", choices=["json", "csv", "html"], default="json")
+    sv = sub.add_parser("serve", help="analysis API (settings: SATFX_* environment variables)")
+    sv.add_argument("--host", help="default SATFX_HOST or 127.0.0.1; any other address needs API keys")
+    sv.add_argument("--port", type=int, help="default SATFX_PORT or 8103")
+    sub.add_parser("migrate", help="apply database migrations to SATFX_DATABASE_URL")
     a = p.parse_args(argv)
+    if a.cmd in ("serve", "migrate"):
+        return _service(a)
     try:
         _run(p, a)
     except (OSError, ValueError, sqlite3.Error) as e:  # bad evidence input: clean message, no traceback
@@ -82,6 +88,34 @@ def _run(p, a):
             events = corroborate.events_from_csv(a.events)
         rep = corroborate.run(events, a.elements, a.mask, a.window)
         print({"json": corroborate.to_json, "csv": corroborate.to_csv, "html": corroborate.to_html}[a.format](rep))
+
+
+def _service(a) -> int:
+    import os
+
+    from satfx import db, ops
+
+    if a.cmd == "serve":
+        for flag, var in (("host", "SATFX_HOST"), ("port", "SATFX_PORT")):
+            if getattr(a, flag) is not None:
+                os.environ[var] = str(getattr(a, flag))
+    try:
+        settings = ops.load_settings()  # fail here, before uvicorn, with a readable message
+    except ops.ConfigError as e:
+        print(f"configuration error: {e}", file=sys.stderr)
+        return 1
+    if a.cmd == "migrate":
+        print(*(db.migrate(db.engine(settings.database_url)) or ["up to date"]), sep="\n")
+        return 0
+    import uvicorn
+
+    ops.setup_logging(settings.log_level)
+    try:
+        uvicorn.run("satfx.api:app", host=settings.host, port=settings.port, log_config=None, access_log=False)
+    except ops.ConfigError as e:  # checks the API module makes when it loads
+        print(f"configuration error: {e}", file=sys.stderr)
+        return 1
+    return 0
 
 
 if __name__ == "__main__":

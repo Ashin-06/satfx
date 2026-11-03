@@ -61,3 +61,18 @@ def test_sweep_custom_terms_and_cap(tmp_path):
     (tmp_path / "f").write_bytes(b"sos " * 500)
     hits = discover.sweep(str(tmp_path), terms=["SOS"], max_hits_per_file=10)
     assert len(hits) == 10
+
+
+def test_hostile_table_names(tmp_path):
+    import sqlite3
+
+    from satfx import discover
+
+    p = tmp_path / "evil.db"
+    con = sqlite3.connect(p)
+    con.execute('CREATE TABLE "a""b" (x)')
+    con.execute('INSERT INTO "a""b" VALUES (1)')
+    con.commit()
+    con.close()
+    snap = discover.snapshot(str(p))
+    assert snap["tables"]['a"b']["columns"] == ["x"]
