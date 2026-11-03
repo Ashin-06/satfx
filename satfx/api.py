@@ -39,7 +39,7 @@ ops.setup_logging(settings.log_level)
 engine = db.connect(settings.database_url)
 _lock = threading.Lock()
 
-app = FastAPI(title="SatFX analysis service", version="1.0.0")
+app = FastAPI(title="SatFX analysis service", version="1.0.1")
 ops.install(app, settings, {"database": lambda: engine.connect().close()})
 
 MAX_ELEMENTS = 5_000_000  # characters: a whole constellation's OMM JSON is well under 1 MB

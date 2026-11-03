@@ -5,11 +5,11 @@ How to deploy and operate the analysis service. Commands assume the repository r
 ## Deploy
 
 ```bash
-docker build -t satfx:1.0.0 .
+docker build -t satfx:1.0.1 .
 python -m satfx.ops keygen              # one API key per examiner, viewer and monitor
 docker run -d --name satfx -p 8103:8103 -v satfx-data:/data \
   -e SATFX_KEYS_FILE=/run/secrets/satfx-keys.json \
-  satfx:1.0.0
+  satfx:1.0.1
 curl -fsS http://127.0.0.1:8103/readyz
 ```
 

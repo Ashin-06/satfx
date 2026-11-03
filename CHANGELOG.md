@@ -2,6 +2,14 @@
 
 All notable changes to this project. Versions follow [semantic versioning](https://semver.org/).
 
+## 1.0.1 — 2026-11-03
+
+### Fixed
+- `sms`, `diff` and `POST /v1/sms` include rows still in a database's `-wal` file. When a WAL is
+  present the database is read through a temporary copy, so the original files are never written
+  or checkpointed; without one it is opened read-only and immutable as before. File names with
+  spaces, `%` or `#` now open correctly.
+
 ## 1.0.0 — 2026-11-03
 
 ### Added

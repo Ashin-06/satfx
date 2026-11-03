@@ -24,7 +24,7 @@ unusual transport value.
 
 | Threat | Mitigation | Residual risk |
 |---|---|---|
-| A crafted sms.db runs code or writes through SQLite | Opened read-only and immutable with `trusted_schema = OFF`; only the `message`, `handle` and chat tables are read, with a fixed column list | SQLite parser bugs |
+| A crafted sms.db runs code or writes through SQLite | Opened read-only (immutable, or a temporary copy when a `-wal` is present) with `trusted_schema = OFF`; only the `message`, `handle` and chat tables are read, with a fixed column list | SQLite parser bugs |
 | Hostile table names break queries (CLI diff) | Identifiers are quoted with doubled quotes | — |
 | A request burns CPU for hours | Coordinates, mask, window and event count are bounded, and each request is capped at 8 million satellite positions | Concurrent heavy requests still share the CPU |
 | Stale or wrong element sets give a misleading verdict | Every result reports element age and flags stale sets; TLE input carries a warning about missing 6-digit catalog numbers | Choosing the right element set for the date is the examiner's job |

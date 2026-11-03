@@ -1,6 +1,6 @@
 # SatFX: Forensics of Satellite Messaging on Phones
 
-**Project 3 of 5** · Status: research complete, tool and analysis API built and tested (36 tests), lab work not started
+**Project 3 of 5** · Status: research complete, tool and analysis API built and tested (39 tests), lab work not started
 Research cut-off: 10 Oct 2026
 
 ## What this is
@@ -43,11 +43,12 @@ Nobody has documented how a phone records that. Forensic tools show these messag
 │   ├── corroborate.py               per-event verdicts, reproducible inputs, JSON/CSV/HTML
 │   ├── sms.py                       iOS sms.db reader with transport audit
 │   ├── discover.py                  SQLite before/after diff, term sweep
+│   ├── _sqlite.py                   read-only evidence connection, WAL through a temporary copy
 │   ├── api.py                       analysis API with a log of every analysis
 │   ├── ops.py, db.py                settings, API keys, limits, logs, metrics; database and migrations
 │   └── cli.py                       `satfx` command
 ├── docs/                            threat model, runbook
-├── tests/                           36 tests; fixtures = real CelesTrak sets (9 Oct 2026)
+├── tests/                           39 tests; fixtures = real CelesTrak sets (9 Oct 2026)
 └── pyproject.toml
 ```
 
@@ -70,6 +71,8 @@ satfx diff        e0/sms.db e1/sms.db          # what a satellite session change
 satfx sweep       extraction/                  # satellite terms in names and contents
 ```
 Get element sets as OMM JSON, from close to the event date: `https://celestrak.org/NORAD/elements/gp.php?GROUP=globalstar&FORMAT=json` (also `iridium-NEXT`, `starlink`; historical sets from Space-Track). Keep the file: its SHA-256 goes into every report.
+
+For `sms` and `diff`, copy each database together with its matching `-wal` file. When a WAL is present, SatFX reads a temporary copy, so committed rows still in the WAL are included and the original files are never written or checkpointed. Copy from a stable acquisition, not a live database that is still changing.
 
 | Feature | Checked against | Status |
 |---|---|---|

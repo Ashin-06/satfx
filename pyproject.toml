@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "satfx"
-version = "1.0.0"
+version = "1.0.1"
 description = "Forensics of satellite messaging on phones, with orbital corroboration"
 readme = "README.md"
 license = "MIT"
