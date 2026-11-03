@@ -1,6 +1,6 @@
 # SatFX: Forensics of Satellite Messaging on Phones
 
-**Project 3 of 5** · Status: research complete, tool built and tested (23 tests), lab work not started
+**Project 3 of 5** · Status: research complete, tool and analysis API built and tested (36 tests), lab work not started
 Research cut-off: 10 Oct 2026
 
 ## What this is
@@ -43,8 +43,11 @@ Nobody has documented how a phone records that. Forensic tools show these messag
 │   ├── corroborate.py               per-event verdicts, reproducible inputs, JSON/CSV/HTML
 │   ├── sms.py                       iOS sms.db reader with transport audit
 │   ├── discover.py                  SQLite before/after diff, term sweep
+│   ├── api.py                       analysis API with a log of every analysis
+│   ├── ops.py, db.py                settings, API keys, limits, logs, metrics; database and migrations
 │   └── cli.py                       `satfx` command
-├── tests/                           23 tests; fixtures = real CelesTrak sets (9 Oct 2026)
+├── docs/                            threat model, runbook
+├── tests/                           36 tests; fixtures = real CelesTrak sets (9 Oct 2026)
 └── pyproject.toml
 ```
 
@@ -53,7 +56,7 @@ CelesTrak's TLE output for Globalstar returned **28** satellites; its OMM JSON r
 
 ## Tool
 ```bash
-python -m venv .venv && .venv/Scripts/pip install -e .[test]   # Linux/macOS: .venv/bin/pip
+python -m venv .venv && .venv/Scripts/pip install -r requirements-dev.lock -e .   # Linux/macOS: .venv/bin/pip
 pytest -q
 ```
 Every command only reads its inputs.
@@ -85,5 +88,38 @@ Get element sets as OMM JSON, from close to the event date: `https://celestrak.o
 - **No terrain model**: the elevation mask stands in for trees and terrain.
 - **Compressed logs** (unified-log `.tracev3`) are not decompressed by `sweep`.
 
+## Analysis API
+
+`satfx serve` (or the container image, `docker build -t satfx .`, see [docs/runbook.md](docs/runbook.md)) puts visibility, corroboration and the sms.db audit behind an API.
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /v1/visible` | which satellites were in view at a time and place |
+| `POST /v1/corroborate` | a coverage verdict per claimed event, as JSON, CSV or HTML |
+| `POST /v1/sms` | transport audit of an iOS sms.db sent as the body |
+| `GET /v1/analyses`, `/v1/analyses/{id}` | the log: who submitted which inputs (by SHA-256), what was found |
+| `GET /healthz`, `/readyz`, `/metrics` | health, readiness and Prometheus metrics |
+
+Callers send the element sets they rely on, so every result names the exact set behind it. Evidence is not stored. Each request is capped at 8 million satellite positions; split larger jobs. API keys carry a role: `examiner`, `viewer`, `monitor`. Create one with `python -m satfx.ops keygen`.
+
+| Variable | Purpose |
+|---|---|
+| `SATFX_ENV=production` | refuse to start without hashed API keys and a database |
+| `SATFX_API_KEYS` / `SATFX_KEYS_FILE` | hashed API keys with roles |
+| `SATFX_DATABASE_URL` | the analysis log: `sqlite:///...` or `postgresql://...` |
+
+## Limitations
+
+- No satellite artifact on a phone is confirmed yet; the tool reports transport values as stored and flags unknown ones.
+- Coverage shows consistency with a satellite link, never that a message was sent; terrain and buildings are not modelled.
+- The analysis log records input hashes but is not signed or hash-chained.
+- The methods have not been tested in court, and the code has not had an independent security review.
+
+See [SECURITY.md](SECURITY.md) and [docs/threat-model.md](docs/threat-model.md).
+
 ## Ethics in one line
 Lab work uses demo modes only, never a real emergency call, on project phones and accounts. Details in [research/05](research/05-legal-ethics.md).
+
+## License
+
+MIT. See [LICENSE](LICENSE).
