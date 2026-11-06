@@ -109,7 +109,7 @@ def in_view(sats, when, lat, lon, alt_m=0.0, mask=10.0) -> list[dict]:
 def coverage(sats, when, lat, lon, alt_m=0.0, mask=10.0, window_min=15, step_s=30, stale_days=3.0) -> dict:
     """In-view satellites at `when`, plus how coverage evolved over +/- window_min minutes.
 
-    ponytail: brute-force loop over satellites x steps; measured 2 s for 8,960 satellites x 61 steps.
+    Brute-force loop over satellites x steps; measured 2 s for 8,960 satellites x 61 steps.
     Switch to sgp4.api.SatrecArray (numpy) if much larger windows or step counts become slow.
     """
     t0 = _utc(when)
