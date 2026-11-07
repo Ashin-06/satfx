@@ -58,7 +58,7 @@ CelesTrak's TLE output for Globalstar returned **28** satellites; its OMM JSON r
 ## Tool
 ```bash
 python -m venv .venv && .venv/Scripts/python -m pip install -r requirements-dev.lock -e .   # Linux/macOS: .venv/bin/python
-pytest -q
+.venv/Scripts/python -m pytest -q
 ```
 Every command only reads its inputs.
 
